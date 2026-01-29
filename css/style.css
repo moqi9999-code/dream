@@ -1503,3 +1503,62 @@ body {
     color: var(--text-secondary);
     margin: 0;
 }
+
+/* 收藏的梦境宇宙故事 */
+.saved-stories-card {
+    background: linear-gradient(145deg, rgba(26,26,62,0.95) 0%, rgba(139,92,246,0.1) 100%) !important;
+    border: 1px solid rgba(139, 92, 246, 0.4) !important;
+}
+
+.saved-story-item {
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.saved-story-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #8b5cf6, transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.saved-story-item:hover::before {
+    opacity: 1;
+}
+
+.saved-story-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(139, 92, 246, 0.2);
+    border-color: rgba(139, 92, 246, 0.5);
+}
+
+.saved-stories-list::-webkit-scrollbar {
+    width: 4px;
+}
+
+.saved-stories-list::-webkit-scrollbar-track {
+    background: rgba(139, 92, 246, 0.1);
+    border-radius: 2px;
+}
+
+.saved-stories-list::-webkit-scrollbar-thumb {
+    background: rgba(139, 92, 246, 0.4);
+    border-radius: 2px;
+}
+
+/* 重新编织按钮动画 */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.btn-primary:active [style*="🔄"] {
+    display: inline-block;
+    animation: spin 0.5s linear;
+}

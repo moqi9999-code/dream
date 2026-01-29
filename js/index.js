@@ -448,6 +448,7 @@ function renderDiary() {
     const filteredDreams = filterDreams();
     const patternAnalysis = analyzeDreamPatterns();
     const savedAnalyses = savedAnalysesManager.getAll();
+    const savedStories = JSON.parse(localStorage.getItem('savedUniverseStories') || '[]');
     
     return `
         <div class="page diary-page">
@@ -455,6 +456,44 @@ function renderDiary() {
                 <button class="back-btn" onclick="navigateTo('home')">${icons.back}</button>
                 <h1 class="page-title">梦境日记</h1>
             </header>
+            
+            <!-- 收藏的梦境宇宙故事区域 -->
+            ${savedStories.length > 0 ? `
+                <div class="card saved-stories-card" style="margin-bottom: 20px; border: 1px solid rgba(139, 92, 246, 0.4); background: linear-gradient(145deg, rgba(26,26,62,0.95) 0%, rgba(139,92,246,0.1) 100%);">
+                    <h3 class="section-title" style="margin-bottom: 16px; font-size: 16px; display: flex; justify-content: space-between; align-items: center;">
+                        <span>
+                            <span style="display:inline-block;width:18px;height:18px;vertical-align:middle;margin-right:6px;">🌌</span>收藏的梦境宇宙
+                        </span>
+                        <span style="font-size: 12px; color: var(--text-secondary);">${savedStories.length} 个故事</span>
+                    </h3>
+                    <div class="saved-stories-list" style="max-height: 300px; overflow-y: auto;">
+                        ${savedStories.slice().reverse().slice(0, 3).map((story, idx) => `
+                            <div class="saved-story-item" style="margin-bottom: 12px; padding: 14px; background: rgba(139,92,246,0.1); border-radius: 12px; cursor: pointer; border: 1px solid rgba(139,92,246,0.2);" onclick="showSavedStoryDetail('${story.id}')">
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                                    <span style="font-weight: 600; font-size: 14px; color: #a78bfa;">${story.title || '梦境宇宙故事'}</span>
+                                    <button onclick="event.stopPropagation(); deleteSavedStory('${story.id}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; font-size: 14px;">✕</button>
+                                </div>
+                                <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 10px;">
+                                    ${story.content?.substring(0, 80) || '暂无内容'}...
+                                </p>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                        ${story.parts?.slice(0, 2).map(part => `
+                                            <span style="padding: 3px 8px; background: ${part.emotionColor}30; color: ${part.emotionColor}; border-radius: 10px; font-size: 10px;">${part.emotionName}</span>
+                                        `).join('') || ''}
+                                    </div>
+                                    <span style="font-size: 10px; color: var(--light-purple);">${formatDate(story.savedAt?.split('T')[0])}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                        ${savedStories.length > 3 ? `
+                            <button class="btn btn-secondary" onclick="showAllSavedStories()" style="width: 100%; padding: 10px; font-size: 13px;">
+                                查看全部 ${savedStories.length} 个宇宙故事
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            ` : ''}
             
             <!-- 收藏的梦境解析区域 -->
             ${savedAnalyses.length > 0 ? `
@@ -565,12 +604,38 @@ function renderDiary() {
     `;
 }
 
+// 伪随机数生成器（支持种子）
+function seededRandom(seed) {
+    const x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);
+}
+
+// 打乱数组（使用种子）
+function shuffleArray(array, seed) {
+    const arr = [...array];
+    let currentIndex = arr.length;
+    let randomIndex;
+    let s = seed || Date.now();
+    
+    while (currentIndex > 0) {
+        randomIndex = Math.floor(seededRandom(s) * currentIndex);
+        s++;
+        currentIndex--;
+        [arr[currentIndex], arr[randomIndex]] = [arr[randomIndex], arr[currentIndex]];
+    }
+    return arr;
+}
+
 // 生成梦境宇宙故事
 function generateDreamUniverseStory() {
     const allDreams = [...appState.sharedDreams];
     if (allDreams.length < 3) {
         return null;
     }
+    
+    // 使用种子来生成不同的故事
+    const seed = appState.universeStorySeed || Date.now();
+    const rng = () => seededRandom(seed + Math.floor(Math.random() * 1000));
     
     // 按情绪分组
     const emotionGroups = {};
@@ -582,46 +647,105 @@ function generateDreamUniverseStory() {
         emotionGroups[emotion].push(dream);
     });
     
-    // 选择主要情绪（数量最多的）
-    const mainEmotion = Object.entries(emotionGroups)
-        .sort((a, b) => b[1].length - a[1].length)[0];
+    // 选择主要情绪（数量最多的），如果有多个相同数量的随机选择
+    const sortedEmotions = Object.entries(emotionGroups)
+        .sort((a, b) => b[1].length - a[1].length);
+    const topEmotions = sortedEmotions.filter(e => e[1].length === sortedEmotions[0][1].length);
+    const mainEmotion = topEmotions.length > 1 
+        ? topEmotions[Math.floor(rng() * topEmotions.length)] 
+        : sortedEmotions[0];
     
     if (!mainEmotion || mainEmotion[1].length < 2) {
         return null;
     }
     
-    const selectedDreams = mainEmotion[1].slice(0, 5);
+    // 随机打乱并选择梦境
+    const shuffledDreams = shuffleArray(mainEmotion[1], seed);
+    const selectedDreams = shuffledDreams.slice(0, Math.min(5, shuffledDreams.length));
+    
     const emotionName = emotions[mainEmotion[0]]?.name || '奇幻';
     const emotionColor = emotions[mainEmotion[0]]?.color || '#d83f87';
+    const emotionIcon = emotions[mainEmotion[0]]?.icon || '✨';
     
-    // 提取关键词
-    const keywords = ['星空', '飞翔', '海洋', '森林', '城市', '山脉', '梦境', '时光'];
-    const selectedKeywords = keywords.sort(() => 0.5 - Math.random()).slice(0, 3);
+    // 关键词库 - 根据不同的情绪类型选择不同的关键词
+    const keywordSets = {
+        fantasy: ['星空', '魔法', '奇境', '幻影', '梦境', '水晶', '彩虹', '翅膀'],
+        anxiety: ['迷雾', '迷宫', '深渊', '迷雾', '风暴', '暗影', '迷雾', '迷雾'],
+        joy: ['阳光', '花园', '乐园', '星光', '花海', '云端', '彩虹', '糖果'],
+        fear: ['黑暗', '迷宫', '深渊', '荒原', '废墟', '暗影', '深渊', '迷雾'],
+        calm: ['湖泊', '月光', '森林', '微风', '竹林', '溪流', '晨雾', '星空'],
+        adventure: ['山脉', '海洋', '宝藏', '探险', '峡谷', '荒原', '遗迹', '航船'],
+        mystery: ['古堡', '秘境', '时光', '迷雾', '回廊', '镜中', '虚空', '深渊'],
+        sadness: ['雨夜', '落叶', '潮汐', '暮色', '孤城', '彼岸', '晚风', '残月']
+    };
+    
+    const keywords = keywordSets[mainEmotion[0]] || keywordSets.fantasy;
+    const selectedKeywords = shuffleArray(keywords, seed + 1).slice(0, 3);
+    
+    // 故事开头模板
+    const storyIntros = [
+        `在${selectedKeywords[0]}与${selectedKeywords[1]}交织的维度，`,
+        `当${selectedKeywords[0]}的光芒穿透${selectedKeywords[1]}的迷雾，`,
+        `穿越${selectedKeywords[0]}的边界，抵达${selectedKeywords[1]}的核心，`,
+        `在${selectedKeywords[0]}的深处，${selectedKeywords[1]}悄然绽放，` ,
+        `${selectedKeywords[0]}与${selectedKeywords[1]}共鸣，开启了一段` ,
+        `从${selectedKeywords[0]}出发，穿越${selectedKeywords[1]}的旅程，` 
+    ];
+    const storyIntro = storyIntros[Math.floor(rng() * storyIntros.length)];
+    
+    // 故事结尾模板
+    const storyOutros = [
+        `最终，一切归于${selectedKeywords[2]}的宁静。`,
+        `而在${selectedKeywords[2]}的尽头，新的故事正在孕育。`,
+        `这就是${selectedKeywords[2]}的启示。`,
+        `留下的，只有${selectedKeywords[2]}的回响。`,
+        `${selectedKeywords[2]}见证了一切。`,
+        `当${selectedKeywords[2]}再次升起，轮回继续。`
+    ];
+    const storyOutro = storyOutros[Math.floor(rng() * storyOutros.length)];
     
     // 生成故事段落
+    const transitions = [
+        `在${selectedKeywords[0]}的深处，`,
+        `穿过${selectedKeywords[1]}的迷雾，`,
+        `当${selectedKeywords[0]}的光芒洒落，`,
+        `随着${selectedKeywords[1]}的律动，`,
+        `在${selectedKeywords[2]}的尽头，`
+    ];
+    
     const storyParts = selectedDreams.map((dream, index) => {
-        const transitions = [
-            `在${selectedKeywords[index]}的深处，`,
-            `穿过${selectedKeywords[index]}的迷雾，`,
-            `当${selectedKeywords[index]}的光芒洒落，`,
-            `随着${selectedKeywords[index]}的律动，`,
-            `在${selectedKeywords[index]}的尽头，`
-        ];
+        const shuffledTransitions = shuffleArray(transitions, seed + index);
+        const emotionData = emotions[dream.emotion] || emotions.fantasy;
         return {
-            transition: transitions[index % transitions.length],
-            content: dream.content.substring(0, 80) + (dream.content.length > 80 ? '...' : ''),
-            emotion: dream.emotion
+            transition: shuffledTransitions[0],
+            content: dream.content.substring(0, 100) + (dream.content.length > 100 ? '...' : ''),
+            emotion: dream.emotion,
+            emotionName: emotionData.name,
+            emotionColor: emotionData.color,
+            emotionIcon: emotionData.icon
         };
     });
+    
+    // 生成完整的故事内容
+    const fullStory = `${storyIntro}\n\n` + 
+        storyParts.map((part, idx) => 
+            `${idx + 1}. ${part.transition}${part.content}`
+        ).join('\n\n') + 
+        `\n\n${storyOutro}`;
     
     return {
         title: `${emotionName}梦境宇宙：${selectedKeywords.join('·')}`,
         emotion: mainEmotion[0],
         emotionName,
         emotionColor,
+        emotionIcon,
         parts: storyParts,
         dreamCount: selectedDreams.length,
-        keywords: selectedKeywords
+        keywords: selectedKeywords,
+        content: fullStory,
+        intro: storyIntro,
+        outro: storyOutro,
+        seed: seed
     };
 }
 
@@ -851,15 +975,7 @@ function navigateTo(page) {
             mainContent.innerHTML = renderDiary();
             // 绑定删除按钮事件
             setTimeout(() => {
-                document.querySelectorAll('.dream-delete-btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const dreamId = btn.getAttribute('data-dream-id');
-                        if (dreamId) {
-                            deleteDreamFromList(dreamId);
-                        }
-                    });
-                });
+                bindDiaryEvents();
             }, 0);
             break;
         case 'share':
@@ -1592,36 +1708,179 @@ function shareDream() {
     setTimeout(() => navigateTo('share'), 500);
 }
 
-// 重新生成梦境宇宙故事
+// 重新生成梦境宇宙故事 - 真正实现重新编织
 function regenerateUniverseStory() {
+    if (appState.sharedDreams.length < 3) {
+        showToast('需要至少3个共享梦境才能编织宇宙故事');
+        return;
+    }
+    
     showToast('🌌 AI正在重新编织梦境宇宙...');
+    
+    // 使用随机种子生成不同的故事
+    appState.universeStorySeed = Date.now();
+    
+    // 强制重新渲染分享页面
     setTimeout(() => {
-        navigateTo('share');
-    }, 1000);
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) {
+            mainContent.innerHTML = renderShare();
+        }
+        showToast('✨ 梦境宇宙故事已重新编织！');
+    }, 800);
+}
+
+// 查看收藏的梦境宇宙故事详情
+function showSavedStoryDetail(storyId) {
+    const savedStories = JSON.parse(localStorage.getItem('savedUniverseStories') || '[]');
+    const story = savedStories.find(s => s.id === storyId);
+    if (!story) return;
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 90%; max-height: 80vh; overflow-y: auto; background: linear-gradient(145deg, rgba(26,26,62,0.98) 0%, rgba(139,92,246,0.1) 100%); border: 1px solid rgba(139,92,246,0.3);">
+            <div class="modal-header" style="border-bottom: 1px solid rgba(139,92,246,0.2);">
+                <h2 class="modal-title">${story.title}</h2>
+                <button class="close-btn" onclick="closeModal()">${icons.close}</button>
+            </div>
+            <div style="padding: 20px;">
+                <div style="margin-bottom: 20px; padding: 16px; background: rgba(139,92,246,0.1); border-radius: 12px; border-left: 3px solid #8b5cf6;">
+                    <p style="font-size: 13px; line-height: 1.8; color: #e0e0ff;">${story.content || '暂无内容'}</p>
+                </div>
+                
+                ${story.parts && story.parts.length > 0 ? `
+                    <h4 style="font-size: 14px; color: #a78bfa; margin-bottom: 12px;">故事片段 (${story.parts.length}段)</h4>
+                    <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+                        ${story.parts.map((part, idx) => `
+                            <div style="padding: 12px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                                    <span style="font-size: 16px;">${part.emotionIcon}</span>
+                                    <span style="font-size: 12px; color: ${part.emotionColor}; font-weight: 500;">${part.emotionName}</span>
+                                </div>
+                                <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.6;">${part.content}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                ` : ''}
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <span style="font-size: 11px; color: var(--text-secondary);">
+                        收藏于 ${formatDate(story.savedAt?.split('T')[0])} ${story.savedAt?.split('T')[1]?.substring(0, 5) || ''}
+                    </span>
+                    <span style="font-size: 11px; color: #8b5cf6;">源自 ${story.dreamCount || 0} 个梦境</span>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('show'), 10);
+}
+
+// 删除收藏的梦境宇宙故事
+function deleteSavedStory(storyId) {
+    if (!confirm('确定要删除这个收藏的梦境宇宙故事吗？')) return;
+    
+    let savedStories = JSON.parse(localStorage.getItem('savedUniverseStories') || '[]');
+    savedStories = savedStories.filter(s => s.id !== storyId);
+    localStorage.setItem('savedUniverseStories', JSON.stringify(savedStories));
+    
+    showToast('梦境宇宙故事已删除');
+    
+    // 刷新日记页面
+    const mainContent = document.getElementById('main-content');
+    if (appState.currentPage === 'diary' && mainContent) {
+        mainContent.innerHTML = renderDiary();
+        bindDiaryEvents();
+    }
+}
+
+// 查看全部收藏的梦境宇宙故事
+function showAllSavedStories() {
+    const savedStories = JSON.parse(localStorage.getItem('savedUniverseStories') || '[]');
+    
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 90%; max-height: 80vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2 class="modal-title">收藏的梦境宇宙 (${savedStories.length})</h2>
+                <button class="close-btn" onclick="closeModal()">${icons.close}</button>
+            </div>
+            <div style="padding: 20px;">
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    ${savedStories.slice().reverse().map(story => `
+                        <div style="padding: 16px; background: rgba(139,92,246,0.1); border-radius: 12px; border: 1px solid rgba(139,92,246,0.2); cursor: pointer;" onclick="closeModal(); showSavedStoryDetail('${story.id}')">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+                                <span style="font-weight: 600; font-size: 14px; color: #a78bfa;">${story.title}</span>
+                                <button onclick="event.stopPropagation(); closeModal(); deleteSavedStory('${story.id}')" style="background: none; border: none; color: #ff6b6b; cursor: pointer; padding: 4px;">删除</button>
+                            </div>
+                            <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                ${story.content?.substring(0, 100)}...
+                            </p>
+                            <div style="margin-top: 8px; display: flex; gap: 6px;">
+                                <span style="font-size: 10px; color: var(--light-purple);">${formatDate(story.savedAt?.split('T')[0])}</span>
+                                <span style="font-size: 10px; color: #8b5cf6;">${story.dreamCount}个梦境</span>
+                            </div>
+                        </div>
+                    `).join('') || '<p style="text-align: center; color: var(--text-secondary); padding: 40px;">暂无收藏的梦境宇宙故事</p>'}
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    setTimeout(() => modal.classList.add('show'), 10);
+}
+
+// 绑定日记页面事件
+function bindDiaryEvents() {
+    document.querySelectorAll('.dream-delete-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const dreamId = btn.getAttribute('data-dream-id');
+            deleteDreamFromList(dreamId);
+        });
+    });
 }
 
 // 收藏梦境宇宙故事
 function saveUniverseStory() {
     const universeStory = generateDreamUniverseStory();
-    if (!universeStory) return;
+    if (!universeStory) {
+        showToast('暂无可收藏的故事');
+        return;
+    }
     
     const savedStories = JSON.parse(localStorage.getItem('savedUniverseStories') || '[]');
+    
+    // 检查是否已收藏相同的故事（基于seed）
+    const isDuplicate = savedStories.some(s => s.seed === universeStory.seed);
+    if (isDuplicate) {
+        showToast('⚠️ 这个故事版本已经收藏过了，试试重新编织一个新的！');
+        return;
+    }
     
     const storyToSave = {
         id: Date.now().toString(),
         title: universeStory.title,
         emotion: universeStory.emotion,
         emotionName: universeStory.emotionName,
-        content: universeStory.parts.map(p => p.transition + p.content).join('\n\n'),
+        emotionColor: universeStory.emotionColor,
+        emotionIcon: universeStory.emotionIcon,
+        content: universeStory.content,
+        intro: universeStory.intro,
+        outro: universeStory.outro,
+        parts: universeStory.parts,
         keywords: universeStory.keywords,
         dreamCount: universeStory.dreamCount,
+        seed: universeStory.seed,
         savedAt: new Date().toISOString()
     };
     
     savedStories.push(storyToSave);
     localStorage.setItem('savedUniverseStories', JSON.stringify(savedStories));
     
-    showToast('✨ 梦境宇宙故事已收藏！');
+    showToast('✨ 梦境宇宙故事已收藏！可在日记页面查看');
 }
 
 function showDreamDetail(dreamId) {
