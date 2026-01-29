@@ -966,7 +966,9 @@ function initSpeechRecognition() {
             }
         }
         
-        // 获取当前纯文本内容（移除HTML标签用于处理）
+        console.log('识别中... 最终:', finalTranscript, '临时:', interimTranscript);
+        
+        // 获取当前纯文本内容
         let currentText = contentDiv.innerText || contentDiv.textContent || '';
         // 移除之前的临时结果
         currentText = currentText.replace(/\[正在识别\.\.\.[^\]]*\]/g, '').trim();
@@ -976,13 +978,13 @@ function initSpeechRecognition() {
             const separator = currentText ? ' ' : '';
             const newText = currentText + separator + finalTranscript;
             contentDiv.innerText = newText;
-            console.log('语音识别结果:', finalTranscript);
+            console.log('✅ 语音识别结果:', finalTranscript);
+            showToast('✅ 识别成功');
         }
         
         // 显示临时结果（正在识别的内容）
         if (interimTranscript && !finalTranscript) {
-            const displayText = currentText + (currentText ? ' ' : '') + '[正在识别...' + interimTranscript + ']';
-            // 保存当前实际内容
+            const displayText = currentText + (currentText ? ' ' : '') + '[识别中...' + interimTranscript + ']';
             if (!contentDiv.dataset.realContent) {
                 contentDiv.dataset.realContent = currentText;
             }
@@ -995,7 +997,7 @@ function initSpeechRecognition() {
         appState.isRecording = true;
         updateVoiceButtonState(true);
         showToast('🎤 正在聆听，请说话...');
-        console.log('语音识别已开始');
+        console.log('✅ 语音识别已开始 - 请说话');
     };
     
     // 识别结束
@@ -1039,12 +1041,13 @@ function initSpeechRecognition() {
     
     // 识别错误
     recognition.onerror = (event) => {
-        console.error('语音识别错误:', event.error);
+        console.error('❌ 语音识别错误:', event.error, event.message || '');
         
         if (event.error === 'not-allowed') {
             showToast('❌ 请允许使用麦克风权限');
             stopVoiceInput();
         } else if (event.error === 'no-speech') {
+            showToast('⚠️ 未检测到语音，请大声说话');
             // 没有检测到语音，在移动端自动重启
             if (isMobile && appState.isRecording) {
                 setTimeout(() => {
@@ -1060,6 +1063,9 @@ function initSpeechRecognition() {
         } else if (event.error === 'aborted') {
             // 用户中止，不显示错误
             return;
+        } else if (event.error === 'service-not-allowed') {
+            showToast('❌ 语音识别服务不可用');
+            stopVoiceInput();
         } else {
             showToast('❌ 识别出错: ' + event.error);
             stopVoiceInput();
