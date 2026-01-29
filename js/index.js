@@ -1086,8 +1086,8 @@ function initSpeechRecognition() {
         
         // 获取当前纯文本内容
         let currentText = contentDiv.innerText || contentDiv.textContent || '';
-        // 移除之前的临时结果
-        currentText = currentText.replace(/\[正在识别\.\.\.[^\]]*\]/g, '').trim();
+        // 移除之前的临时结果标记（匹配"识别中"或"正在识别"）
+        currentText = currentText.replace(/\[(正在)?识别中\.\.\.[^\]]*\]/g, '').trim();
         
         // 添加最终识别结果
         if (finalTranscript) {
@@ -1098,9 +1098,9 @@ function initSpeechRecognition() {
             showToast('✅ 识别成功');
         }
         
-        // 显示临时结果（正在识别的内容）
+        // 显示临时结果（正在识别的内容）- 使用简洁格式
         if (interimTranscript && !finalTranscript) {
-            const displayText = currentText + (currentText ? ' ' : '') + '[识别中...' + interimTranscript + ']';
+            const displayText = currentText + (currentText ? ' ' : '') + interimTranscript;
             if (!contentDiv.dataset.realContent) {
                 contentDiv.dataset.realContent = currentText;
             }
@@ -1123,9 +1123,9 @@ function initSpeechRecognition() {
         // 清除临时结果标记
         const contentDiv = document.getElementById('dream-content');
         if (contentDiv) {
-            // 恢复真实内容（移除临时识别标记）
+            // 恢复真实内容（移除临时识别标记）- 匹配"识别中"或"正在识别"
             let text = contentDiv.innerText || contentDiv.textContent || '';
-            text = text.replace(/\[正在识别\.\.\.[^\]]*\]/g, '').trim();
+            text = text.replace(/\[(正在)?识别中\.\.\.[^\]]*\]/g, '').trim();
             if (contentDiv.dataset.realContent) {
                 contentDiv.innerText = contentDiv.dataset.realContent;
                 delete contentDiv.dataset.realContent;
@@ -1227,9 +1227,9 @@ function stopVoiceInput() {
     // 清除临时结果标记并恢复真实内容
     const contentDiv = document.getElementById('dream-content');
     if (contentDiv) {
-        // 移除临时识别标记
+        // 移除临时识别标记 - 匹配"识别中"或"正在识别"
         let text = contentDiv.innerText || contentDiv.textContent || '';
-        text = text.replace(/\[正在识别\.\.\.[^\]]*\]/g, '').trim();
+        text = text.replace(/\[(正在)?识别中\.\.\.[^\]]*\]/g, '').trim();
         if (contentDiv.dataset.realContent) {
             contentDiv.innerText = contentDiv.dataset.realContent;
             delete contentDiv.dataset.realContent;
