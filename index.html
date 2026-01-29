@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>梦境宇宙</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- 页面内容容器 -->
+        <main id="main-content"></main>
+        
+        <!-- 底部导航 - 新布局：记录 | 解析 | 主页 | 日记 | 共享 -->
+        <nav class="bottom-nav">
+            <!-- 左侧：记录梦境 -->
+            <button class="nav-item" data-page="record">
+                <svg class="nav-icon" viewBox="0 0 60 60">
+                    <circle cx="30" cy="30" r="28" fill="rgba(26,54,93,0.6)" stroke="#ffd166" stroke-width="2"/>
+                    <rect x="20" y="22" width="20" height="16" rx="2" fill="none" stroke="#ffd166" stroke-width="2"/>
+                    <line x1="23" y1="26" x2="37" y2="26" stroke="#ffd166" stroke-width="1.5"/>
+                    <line x1="23" y1="30" x2="35" y2="30" stroke="#ffd166" stroke-width="1.5"/>
+                    <line x1="23" y1="34" x2="32" y2="34" stroke="#ffd166" stroke-width="1.5"/>
+                    <polygon points="30,12 32,17 37,17 33,20 35,25 30,22 25,25 27,20 23,17 28,17" fill="#ffd166"/>
+                </svg>
+                <span>记录</span>
+            </button>
+            
+            <!-- 左侧：AI解析 -->
+            <button class="nav-item" data-page="analyze">
+                <svg class="nav-icon" viewBox="0 0 60 60">
+                    <circle cx="30" cy="30" r="28" fill="rgba(200,162,200,0.4)" stroke="#C8A2C8" stroke-width="2"/>
+                    <circle cx="28" cy="28" r="8" fill="none" stroke="#C8A2C8" stroke-width="2"/>
+                    <line x1="34" y1="34" x2="42" y2="42" stroke="#C8A2C8" stroke-width="2"/>
+                    <polygon points="30,8 31.5,12 36,12 32.5,15 34,19 30,16 26,19 27.5,15 24,12 28.5,12" fill="#C8A2C8"/>
+                </svg>
+                <span>解析</span>
+            </button>
+            
+            <!-- 中间：主页（突出显示） -->
+            <button class="nav-item nav-item-center active" data-page="home">
+                <div class="nav-icon-wrapper">
+                    <svg class="nav-icon nav-icon-large" viewBox="0 0 70 70">
+                        <circle cx="35" cy="35" r="32" fill="rgba(255,209,102,0.2)" stroke="#ffd166" stroke-width="3"/>
+                        <path d="M23 30 L35 20 L47 30 L47 45 L23 45 Z" fill="none" stroke="#ffd166" stroke-width="2.5"/>
+                        <polygon points="35,12 37.5,18 43,18 38.5,22 40.5,28 35,24 29.5,28 31.5,22 27,18 32.5,18" fill="#ffd166"/>
+                    </svg>
+                </div>
+                <span class="nav-label-center">主页</span>
+            </button>
+            
+            <!-- 右侧：梦境日记 -->
+            <button class="nav-item" data-page="diary">
+                <svg class="nav-icon" viewBox="0 0 60 60">
+                    <circle cx="30" cy="30" r="28" fill="rgba(200,162,200,0.4)" stroke="#C8A2C8" stroke-width="2"/>
+                    <rect x="20" y="18" width="20" height="24" rx="2" fill="none" stroke="#C8A2C8" stroke-width="2"/>
+                    <line x1="24" y1="18" x2="24" y2="42" stroke="#C8A2C8" stroke-width="1.5"/>
+                    <line x1="28" y1="24" x2="36" y2="24" stroke="#C8A2C8" stroke-width="1.5"/>
+                    <line x1="28" y1="30" x2="36" y2="30" stroke="#C8A2C8" stroke-width="1.5"/>
+                    <polygon points="30,8 31.5,12 36,12 32.5,15 34,19 30,16 26,19 27.5,15 24,12 28.5,12" fill="#C8A2C8"/>
+                </svg>
+                <span>日记</span>
+            </button>
+            
+            <!-- 右侧：共享宇宙 -->
+            <button class="nav-item" data-page="share">
+                <svg class="nav-icon" viewBox="0 0 60 60">
+                    <circle cx="30" cy="30" r="28" fill="rgba(26,54,93,0.6)" stroke="#ffd166" stroke-width="2"/>
+                    <circle cx="38" cy="20" r="5" fill="none" stroke="#ffd166" stroke-width="1.5"/>
+                    <circle cx="22" cy="30" r="5" fill="none" stroke="#ffd166" stroke-width="1.5"/>
+                    <circle cx="38" cy="40" r="5" fill="none" stroke="#ffd166" stroke-width="1.5"/>
+                    <line x1="26" y1="28" x2="34" y2="22" stroke="#ffd166" stroke-width="1.5"/>
+                    <line x1="26" y1="32" x2="34" y2="38" stroke="#ffd166" stroke-width="1.5"/>
+                    <polygon points="30,6 31.5,11 36,11 32.5,14 34,18 30,15 26,18 27.5,14 24,11 28.5,11" fill="#ffd166"/>
+                </svg>
+                <span>共享</span>
+            </button>
+        </nav>
+    </div>
+    
+    <!-- 提示消息 -->
+    <div id="toast" class="toast"></div>
+    
+    <script src="./js/index.js"></script>
+</body>
+</html>
