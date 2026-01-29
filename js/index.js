@@ -580,9 +580,9 @@ function renderDiary() {
                                 <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                                     <span class="dream-tag ${dream.emotion}">${emotions[dream.emotion]?.name || '未知'}</span>
                                     ${dream.clarity ? `<span style="font-size: 11px; color: var(--yellow);">${'★'.repeat(dream.clarity)}</span>` : ''}
-                                    ${dream.realityCheck ? `
-                                        <span style="padding: 2px 8px; border-radius: 10px; font-size: 10px; background: ${dream.realityCheck.cameTrue ? 'rgba(255,209,102,0.2)' : 'rgba(255,255,255,0.1)'}; color: ${dream.realityCheck.cameTrue ? 'var(--yellow)' : 'var(--text-secondary)'}">
-                                            ${dream.realityCheck.cameTrue ? '✨ 已成真' : '📋 待验证'}
+                                    ${dream.realityCheck?.cameTrue === true ? `
+                                        <span style="display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 12px; font-size: 11px; background: linear-gradient(135deg, #ffd166 0%, #ff9f43 100%); color: #1a1a3e; font-weight: 600;">
+                                            <span>⭐</span> 已成真
                                         </span>
                                     ` : ''}
                                 </div>
